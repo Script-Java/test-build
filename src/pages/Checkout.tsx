@@ -120,6 +120,15 @@ export function Checkout() {
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0) || 10.00; 
   const total = subtotal + shippingCost;
 
+  const isAddressComplete =
+    !!formData.email &&
+    !!formData.firstName &&
+    !!formData.lastName &&
+    !!formData.address &&
+    !!formData.city &&
+    formData.state !== 'State' &&
+    formData.zip.length >= 5;
+
   const handleSquareTokenization = async (token: any) => {
     if (formData.state === 'State') {
       toast.error('Please select a state before completing your order.');
@@ -469,12 +478,19 @@ export function Checkout() {
                   />
                 </div>
 
-                {/* Square Card Fields */}
+                {/* Square Card Fields — only shown when address is complete */}
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-black mb-3">
                     Card Details <span className="text-red-500">*</span>
                   </p>
-                  {import.meta.env.VITE_SQUARE_APPLICATION_ID ? (
+                  {!isAddressComplete ? (
+                    <div className="flex items-center gap-3 p-4 bg-gray-100 border border-gray-200 rounded-md mt-2">
+                      <span className="text-lg">🔒</span>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-relaxed">
+                        Complete your shipping address above to unlock payment.
+                      </p>
+                    </div>
+                  ) : import.meta.env.VITE_SQUARE_APPLICATION_ID ? (
                     <PaymentForm
                       applicationId={import.meta.env.VITE_SQUARE_APPLICATION_ID}
                       locationId={import.meta.env.VITE_SQUARE_LOCATION_ID || ''}
@@ -504,7 +520,7 @@ export function Checkout() {
                         {isProcessing ? 'PROCESSING…' : `PLACE ORDER — $${(total || 10).toFixed(2)}`}
                       </CreditCard>
                     </PaymentForm>
-                  ) : (
+                  ) : !isAddressComplete ? null : (
                     <div className="p-5 bg-amber-50 border border-amber-200 rounded-md text-amber-700 text-xs font-bold space-y-2">
                       <p>⚠️ Square credentials not configured.</p>
                       <p className="opacity-70 text-[10px]">Add <code>VITE_SQUARE_APPLICATION_ID</code> and <code>VITE_SQUARE_LOCATION_ID</code> to your environment variables to enable card payments.</p>
