@@ -478,19 +478,12 @@ export function Checkout() {
                   />
                 </div>
 
-                {/* Square Card Fields — only shown when address is complete */}
+                {/* Square Card Fields — always shown, button disabled until address complete */}
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-black mb-3">
                     Card Details <span className="text-red-500">*</span>
                   </p>
-                  {!isAddressComplete ? (
-                    <div className="flex items-center gap-3 p-4 bg-gray-100 border border-gray-200 rounded-md mt-2">
-                      <span className="text-lg">🔒</span>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-relaxed">
-                        Complete your shipping address above to unlock payment.
-                      </p>
-                    </div>
-                  ) : import.meta.env.VITE_SQUARE_APPLICATION_ID ? (
+                  {import.meta.env.VITE_SQUARE_APPLICATION_ID ? (
                     <PaymentForm
                       applicationId={import.meta.env.VITE_SQUARE_APPLICATION_ID}
                       locationId={import.meta.env.VITE_SQUARE_LOCATION_ID || ''}
@@ -499,14 +492,15 @@ export function Checkout() {
                       <CreditCard>
                         <button
                           type="button"
-                          disabled={isProcessing}
-                          className="w-full bg-[#c09dff] hover:bg-[#a87cf4] text-white py-5 rounded-md text-sm font-black uppercase tracking-widest transition-all shadow-lg shadow-purple-300/30 hover:shadow-xl active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed mt-6 cursor-pointer"
+                          disabled={!isAddressComplete || isProcessing}
+                          title={!isAddressComplete ? 'Complete your shipping address to place order' : undefined}
+                          className="w-full bg-black hover:bg-gray-900 text-white py-5 rounded-md text-sm font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-gray-400 mt-6 cursor-pointer"
                         >
                           {isProcessing ? 'PROCESSING…' : `PLACE ORDER — $${(total || 10).toFixed(2)}`}
                         </button>
                       </CreditCard>
                     </PaymentForm>
-                  ) : !isAddressComplete ? null : (
+                  ) : (
                     <div className="p-5 bg-amber-50 border border-amber-200 rounded-md text-amber-700 text-xs font-bold space-y-2">
                       <p>⚠️ Square credentials not configured.</p>
                       <p className="opacity-70 text-[10px]">Add <code>VITE_SQUARE_APPLICATION_ID</code> and <code>VITE_SQUARE_LOCATION_ID</code> to your environment variables to enable card payments.</p>
