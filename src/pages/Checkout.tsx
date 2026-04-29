@@ -496,28 +496,14 @@ export function Checkout() {
                       locationId={import.meta.env.VITE_SQUARE_LOCATION_ID || ''}
                       cardTokenizeResponseReceived={handleSquareTokenization}
                     >
-                      <CreditCard
-                        buttonProps={{
-                          isLoading: isProcessing,
-                          css: {
-                            width: '100%',
-                            backgroundColor: '#c09dff',
-                            color: '#ffffff',
-                            padding: '18px 0',
-                            borderRadius: '6px',
-                            fontSize: '13px',
-                            fontWeight: '900',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.12em',
-                            border: 'none',
-                            cursor: 'pointer',
-                            marginTop: '1.5rem',
-                            boxShadow: '0 8px 20px -4px rgba(192,157,255,0.35)',
-                            transition: 'all 0.2s ease',
-                          },
-                        }}
-                      >
-                        {isProcessing ? 'PROCESSING…' : `PLACE ORDER — $${(total || 10).toFixed(2)}`}
+                      <CreditCard>
+                        <button
+                          type="button"
+                          disabled={isProcessing}
+                          className="w-full bg-[#c09dff] hover:bg-[#a87cf4] text-white py-5 rounded-md text-sm font-black uppercase tracking-widest transition-all shadow-lg shadow-purple-300/30 hover:shadow-xl active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed mt-6 cursor-pointer"
+                        >
+                          {isProcessing ? 'PROCESSING…' : `PLACE ORDER — $${(total || 10).toFixed(2)}`}
+                        </button>
                       </CreditCard>
                     </PaymentForm>
                   ) : !isAddressComplete ? null : (
