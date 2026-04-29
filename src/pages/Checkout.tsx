@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../lib/AuthContext';
 import axios from 'axios';
+import { PaymentForm, CreditCard } from 'react-square-web-payments-sdk';
 
 // Global type for BigCommerce SDK
 declare global {
@@ -119,23 +120,49 @@ export function Checkout() {
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0) || 10.00; 
   const total = subtotal + shippingCost;
 
-  const handleProceedToCheckout = async () => {
+  const handleSquareTokenization = async (token: any) => {
+    if (formData.state === 'State') {
+      toast.error('Please select a state before completing your order.');
+      return;
+    }
+    if (!formData.email || !formData.firstName || !formData.lastName || !formData.address || !formData.city || !formData.zip) {
+      toast.error('Please fill in all required fields.');
+      return;
+    }
+    if (!token?.token) {
+      toast.error('Card tokenisation failed. Please try again.');
+      return;
+    }
+
     setIsProcessing(true);
     try {
-      const response = await axios.post("/api/checkout", { 
+      const response = await axios.post('/api/checkout/process', {
         cart,
-        email: formData.email
+        nonce: token.token,
+        email: formData.email,
+        shipping_address: {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          street_1: formData.address,
+          city: formData.city,
+          state: formData.state,
+          zip: formData.zip,
+          phone: formData.phone,
+          country_iso2: 'US',
+        },
+        shipping_id: selectedShippingId,
       });
-      
-      if (response.data?.checkout_url) {
-        window.location.href = response.data.checkout_url;
+
+      if (response.data?.success) {
+        toast.success('Order placed successfully!');
+        navigate(`/order-success?id=${response.data.orderId}`);
       } else {
-        toast.error("Failed to generate checkout link.");
+        toast.error(response.data?.error || 'Payment failed. Please try again.');
         setIsProcessing(false);
       }
     } catch (error: any) {
-      console.error("Checkout Error:", error);
-      toast.error(error.response?.data?.error || "Failed to initiate checkout.");
+      console.error('Checkout Error:', error);
+      toast.error(error.response?.data?.error || error.response?.data?.details || 'Failed to process payment.');
       setIsProcessing(false);
     }
   };
@@ -410,32 +437,74 @@ export function Checkout() {
               {/* PAYMENT METHOD SECTION & SUBMIT */}
               <section className="bg-gray-50 border border-gray-100 rounded-lg p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-black italic tracking-tighter uppercase leading-none">Complete Securely</h2>
+                  <h2 className="text-xl font-black italic tracking-tighter uppercase leading-none">Payment</h2>
                   <div className="flex gap-2">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" className="h-4 w-auto opacity-70 grayscale transition-all" />
                     <img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Mastercard-logo.svg" alt="Mastercard" className="h-4 w-auto opacity-70 grayscale transition-all" />
                   </div>
                 </div>
-                
-                <div className="space-y-6">
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-relaxed">
-                    You will be redirected to our secure BigCommerce checkout to complete your payment using Square.
-                  </p>
-                  
-                  <button 
-                    onClick={handleProceedToCheckout}
-                    disabled={isProcessing}
-                    type="button"
-                    className="w-full bg-[#c09dff] hover:bg-[#a87cf4] text-white py-5 rounded-md text-sm font-black uppercase tracking-widest transition-all shadow-lg hover:shadow-xl active:scale-95 disabled:opacity-50"
-                  >
-                    {isProcessing ? "GENERATING SECURE LINK..." : `PROCEED TO CHECKOUT — $${(total || 10).toFixed(2)}`}
-                  </button>
+
+                {/* Cardholder Name */}
+                <div className="mb-5">
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-black mb-2">
+                    Cardholder Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.cardholderName}
+                    onChange={(e) => updateField('cardholderName', e.target.value)}
+                    placeholder="FULL NAME ON CARD"
+                    className="w-full bg-white border border-gray-200 rounded-md px-4 py-3.5 text-[10px] font-black tracking-widest uppercase focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all placeholder:text-gray-300"
+                  />
                 </div>
 
-                <div className="flex items-start gap-3 mt-6 px-2">
-                  <div className="w-4 h-4 text-green-500 mt-0.5">🛡️</div>
-                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-relaxed">
-                    Your payment is processed through <span className="text-black">Square Secure Gateway</span>. High-grade 256-bit encryption active.
+                {/* Square Card Fields */}
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-black mb-3">
+                    Card Details <span className="text-red-500">*</span>
+                  </p>
+                  {import.meta.env.VITE_SQUARE_APPLICATION_ID ? (
+                    <PaymentForm
+                      applicationId={import.meta.env.VITE_SQUARE_APPLICATION_ID}
+                      locationId={import.meta.env.VITE_SQUARE_LOCATION_ID || ''}
+                      cardTokenizeResponseReceived={handleSquareTokenization}
+                    >
+                      <CreditCard
+                        buttonProps={{
+                          isLoading: isProcessing,
+                          css: {
+                            width: '100%',
+                            backgroundColor: '#c09dff',
+                            color: '#ffffff',
+                            padding: '18px 0',
+                            borderRadius: '6px',
+                            fontSize: '13px',
+                            fontWeight: '900',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.12em',
+                            border: 'none',
+                            cursor: 'pointer',
+                            marginTop: '1.5rem',
+                            boxShadow: '0 8px 20px -4px rgba(192,157,255,0.35)',
+                            transition: 'all 0.2s ease',
+                          },
+                        }}
+                      >
+                        {isProcessing ? 'PROCESSING…' : `PLACE ORDER — $${(total || 10).toFixed(2)}`}
+                      </CreditCard>
+                    </PaymentForm>
+                  ) : (
+                    <div className="p-5 bg-amber-50 border border-amber-200 rounded-md text-amber-700 text-xs font-bold space-y-2">
+                      <p>⚠️ Square credentials not configured.</p>
+                      <p className="opacity-70 text-[10px]">Add <code>VITE_SQUARE_APPLICATION_ID</code> and <code>VITE_SQUARE_LOCATION_ID</code> to your environment variables to enable card payments.</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-start gap-3 mt-6 px-1">
+                  <div className="mt-0.5">🛡️</div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-relaxed">
+                    Payments secured by <span className="text-black">Square</span> — 256-bit TLS encryption.
                   </p>
                 </div>
               </section>
