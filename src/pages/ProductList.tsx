@@ -16,9 +16,8 @@ export function ProductList() {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (products.length > 0 && categories.length > 0) {
-        setLoading(false);
-        return;
+      if (products.length === 0 || categories.length === 0) {
+        setLoading(true);
       }
       
       try {

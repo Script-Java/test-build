@@ -28,9 +28,6 @@ import {
   Truck
 } from "lucide-react";
 import axios from "axios";
-import { auth, db, handleFirestoreError, OperationType } from "../lib/firebase";
-import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
-import { collection, query, where, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
 import { toast } from "react-hot-toast";
 
 type Tab = 'overview' | 'orders' | 'support' | 'settings' | 'reviews';
@@ -41,7 +38,7 @@ interface Review {
   userName: string;
   rating: number;
   comment: string;
-  createdAt: Timestamp;
+  createdAt: string;
   status: string;
 }
 
@@ -78,22 +75,6 @@ export function Dashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const [firebaseReady, setFirebaseReady] = useState(false);
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (fbUser) => {
-      if (!fbUser) {
-        try {
-          await signInAnonymously(auth);
-        } catch (err) {
-          console.error("Firebase Anonymous Auth failed", err);
-        }
-      } else {
-        setFirebaseReady(true);
-      }
-    });
-    return () => unsub();
-  }, []);
   const [orders, setOrders] = useState<Order[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [threads, setThreads] = useState<Thread[]>([]);
@@ -109,23 +90,16 @@ export function Dashboard() {
   useEffect(() => {
     if (!user) return;
     
-    const q = query(
-      collection(db, 'reviews'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedReviews = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Review[];
-      setMyReviews(fetchedReviews);
-    }, (error) => {
-      console.error("Error fetching my reviews:", error);
-    });
-
-    return () => unsubscribe();
+    const fetchReviews = async () => {
+      try {
+        const res = await axios.get(`/api/customer/reviews?email=${encodeURIComponent(user.email || "")}`);
+        setMyReviews(res.data);
+      } catch (err) {
+        console.error("Error fetching my reviews:", err);
+      }
+    };
+    
+    fetchReviews();
   }, [user]);
 
   useEffect(() => {
@@ -223,8 +197,8 @@ export function Dashboard() {
   const handleDeleteReview = async (reviewId: string) => {
     if (!window.confirm("Are you sure you want to delete this review?")) return;
     try {
-      const { deleteDoc, doc } = await import('firebase/firestore');
-      await deleteDoc(doc(db, 'reviews', reviewId));
+      await axios.delete(`/api/customer/reviews/${reviewId}`);
+      setMyReviews(prev => prev.filter(r => r.id !== reviewId));
       toast.success("Review deleted");
     } catch (error) {
       console.error("Error deleting review:", error);

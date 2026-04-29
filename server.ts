@@ -745,6 +745,26 @@ app.get("/api/customer/orders", async (req, res) => {
   }
 });
 
+app.get("/api/customer/reviews", async (req, res) => {
+  // Mock endpoint to replace Firebase
+  res.json([
+    {
+      id: "mock_review_1",
+      productId: "1",
+      userName: "Member",
+      rating: 5,
+      comment: "Excellent quality, fast shipping.",
+      createdAt: new Date().toISOString(),
+      status: "approved"
+    }
+  ]);
+});
+
+app.delete("/api/customer/reviews/:id", async (req, res) => {
+  // Mock endpoint to replace Firebase
+  res.json({ success: true, message: "Review deleted" });
+});
+
 app.get("/api/customer/profile", async (req, res) => {
   const { email } = req.query;
   const emailStr = String(email);
