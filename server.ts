@@ -1810,7 +1810,8 @@ app.post("/api/checkout/process", async (req, res) => {
       const paymentAccessToken = patRes.data.data.id;
 
       // Step B: Submit Payment
-      const paymentGatewayId = req.body.payment_method_id || 'braintree'; // Replace with actual configured gateway
+      // Always use Square — it is the configured payment gateway
+      const paymentGatewayId = 'squarev2';
       
       try {
         const providerNames: Record<string, string> = { "squarev2": "Square", "braintree": "Credit Card" };
@@ -1852,40 +1853,22 @@ app.post("/api/checkout/process", async (req, res) => {
             throw new Error(`Square Gateway Error: ${errMsg}`);
           }
         } else {
-          // Process via BigCommerce S2S
-          await axios.post(`https://payments.bigcommerce.com/stores/${storeHash}/payments`, {
-            payment: {
-              instrument: {
-                type: "token", 
-                token: nonce // Real nonce provided by frontend SDK (e.g. Braintree/Stripe)
-              },
-              payment_method_id: paymentGatewayId
-            }
-          }, {
-            headers: {
-              "Authorization": `PAT ${paymentAccessToken}`,
-              "Accept": "application/vnd.bc.v1+json",
-              "Content-Type": "application/json"
-            }
-          });
-          
-          console.log(`Payment successfully captured for Order #${orderId}`);
+          // No Square client configured — payment cannot proceed
+          throw new Error("Square payment gateway is not configured on this server. Add SQUARE_ACCESS_TOKEN to your environment.");
         }
       } catch (gatewayError: any) {
-        // If they are using the simulated nonce or have no gateway configured, the BigCommerce S2S API will throw here.
-        // We mute the direct error log of "Type is invalid" since it's expected without a real gateway setup, 
-        // but we still process the fallback mechanism below so prototyping functions.
-        console.log("Mocking successful order status since valid gateway configuration might be missing in this environment.");
+        // Surface the real error — do NOT silently succeed
+        const errMsg = gatewayError.message || "Payment gateway error";
+        console.error("Gateway Error (will NOT mark order paid):", errMsg);
         
-        const providerNames: Record<string, string> = { "squarev2": "Square", "braintree": "Credit Card" };
-        const paymentMethodName = providerNames[paymentGatewayId] || "Credit Card";
-
+        // Cancel/void the unpaid order so BigCommerce doesn't send a false confirmation
         await axios.put(`${v2Url}/orders/${orderId}`, { 
-          status_id: 11, // 11 = Awaiting Fulfillment
-          payment_method: paymentMethodName
+          status_id: 0 // Incomplete — revert
         }, {
           headers: { "X-Auth-Token": accessToken }
-        });
+        }).catch(() => {});
+        
+        return res.status(402).json({ success: false, error: errMsg });
       }
 
       res.json({ 
@@ -1895,18 +1878,8 @@ app.post("/api/checkout/process", async (req, res) => {
       });
     } catch (payError: any) {
       console.error("Checkout Payment Sync Error:", payError.message);
-      
-      const paymentGatewayId = req.body.payment_method_id || 'braintree';
-      const providerNames: Record<string, string> = { "squarev2": "Square", "braintree": "Credit Card" };
-      const paymentMethodName = providerNames[paymentGatewayId] || "Credit Card";
-
-      // We will fallback to success to allow the UI to continue for prototyping if the S2S process breaks
-      await axios.put(`${v2Url}/orders/${orderId}`, { 
-        status_id: 11,
-        payment_method: paymentMethodName
-      }, { headers: { "X-Auth-Token": accessToken } }).catch(e => console.error("Fallback Update Error:", e.message));
-      
-      res.json({ success: true, orderId: orderId, message: "Order created, payment status pending sync." });
+      // Surface the real error — never silently succeed on a payment failure
+      return res.status(402).json({ success: false, error: payError.message || "Payment processing failed." });
     }
 
   } catch (error: any) {
