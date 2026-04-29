@@ -2113,7 +2113,8 @@ async function startServer() {
   if (process.env.VERCEL) return; // Vercel handles static routing and doesn't support Vite middleware in Lambda
 
   if (process.env.NODE_ENV !== "production") {
-    const { createServer: createViteServer } = await import("vite");
+    const vitePkg = "vi" + "te";
+    const { createServer: createViteServer } = await import(vitePkg);
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
