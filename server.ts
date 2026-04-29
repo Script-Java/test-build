@@ -2110,6 +2110,8 @@ app.get("/api/categories", async (req, res) => {
 
 // Vite middleware for development
 async function startServer() {
+  if (process.env.VERCEL) return; // Vercel handles static routing and doesn't support Vite middleware in Lambda
+
   if (process.env.NODE_ENV !== "production") {
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
