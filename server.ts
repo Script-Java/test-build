@@ -1,5 +1,4 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import path from "path";
 import axios from "axios";
 import dotenv from "dotenv";
@@ -38,6 +37,16 @@ app.get("/api/health", (req, res) => {
     timestamp: new Date().toISOString(),
     is_bigcommerce_configured: !!config 
   });
+});
+
+app.get("/api/env-dump", (req, res) => {
+  const envs = {};
+  for (const key of Object.keys(process.env)) {
+    if (key.includes("BC_") || key.includes("BIGCOMMERCE") || key.includes("SQUARE") || key.includes("VITE_") || key.includes("FIREBASE")) {
+      envs[key] = process.env[key];
+    }
+  }
+  res.json(envs);
 });
 
 // BigCommerce Configuration Helper
@@ -2082,6 +2091,7 @@ app.get("/api/categories", async (req, res) => {
 // Vite middleware for development
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
