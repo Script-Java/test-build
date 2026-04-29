@@ -438,9 +438,20 @@ export function Checkout() {
               <section className="bg-gray-50 border border-gray-100 rounded-lg p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-black italic tracking-tighter uppercase leading-none">Payment</h2>
-                  <div className="flex gap-2">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" className="h-4 w-auto opacity-70 grayscale transition-all" />
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Mastercard-logo.svg" alt="Mastercard" className="h-4 w-auto opacity-70 grayscale transition-all" />
+                  <div className="flex gap-2 items-center">
+                    {/* Visa inline SVG */}
+                    <svg className="h-5 w-auto opacity-60" viewBox="0 0 750 471" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="750" height="471" rx="40" fill="#1A1F71"/>
+                      <path d="M278 340 L313 131h50L328 340h-50zM524 135c-10-4-25-8-44-8-49 0-83 26-84 63-0 27 24 43 43 52 19 9 26 15 26 23-0 12-15 18-30 18-20 0-31-3-48-10l-7-3-7 44c12 5 34 10 57 10 52 0 86-26 87-65 0-22-13-38-42-52-17-9-28-15-28-24 0-8 9-17 29-17 16 0 28 3 37 7l4 2 7-42zM614 131h-38c-12 0-20 3-25 16l-74 193h52l11-29h64l6 29h46L614 131zm-61 140l20-55 11 55h-31zM230 131l-49 143-5-27c-9-31-38-65-70-82l44 174h52l78-208h-50z" fill="white"/>
+                      <path d="M163 131H82l-1 4c63 16 104 55 121 101l-17-88c-3-13-11-17-22-17z" fill="#F2AE14"/>
+                    </svg>
+                    {/* Mastercard inline SVG */}
+                    <svg className="h-5 w-auto opacity-60" viewBox="0 0 131.39 86.9" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="131.39" height="86.9" rx="8" fill="#252525"/>
+                      <circle cx="49.9" cy="43.45" r="28.45" fill="#EB001B"/>
+                      <circle cx="81.49" cy="43.45" r="28.45" fill="#F79E1B"/>
+                      <path d="M65.7 19.7a28.45 28.45 0 0 1 0 47.5 28.45 28.45 0 0 1 0-47.5z" fill="#FF5F00"/>
+                    </svg>
                   </div>
                 </div>
 
